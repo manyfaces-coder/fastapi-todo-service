@@ -10,3 +10,8 @@ if not JWT_KEY:
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL is not set")
+
+# отдельная ссылка на БД для Alembic, т.к. в текущей конфигурации он работает синхронно
+ALEMBIC_DATABASE_URL = os.getenv("ALEMBIC_DATABASE_URL")
+if not ALEMBIC_DATABASE_URL:
+    raise RuntimeError("ALEMBIC_DATABASE_URL is not set")
