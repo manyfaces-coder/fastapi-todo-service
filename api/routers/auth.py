@@ -1,10 +1,21 @@
 from fastapi import APIRouter, Depends
 from schemas.auth import Token
-from services.auth_service import authenticate_user, create_jwt_token
+from schemas.user import UserCreate, UserRead
+from services.auth_service import authenticate_user, create_jwt_token, register_user
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.session import get_db
 auth_router = APIRouter(tags=['Authentication'])
+
+
+@auth_router.post("/register", response_model=UserRead)
+async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    user = await register_user(
+        session=db,
+        username=user_data.username,
+        password=user_data.password,
+    )
+    return user
 
 
 @auth_router.post("/login", response_model=Token)
