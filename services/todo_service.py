@@ -58,6 +58,9 @@ async def update_todo_by_id(
     else:
         todo.completed_at = None
 
+    if todo.version != todo_data.version:
+        raise HTTPException(status_code=409, detail="Version conflict")
+
     todo.version += 1
 
     await session.commit()
@@ -74,6 +77,8 @@ async def patch_todo_by_id(
     todo = await get_todo_by_id(session, todo_id)
 
     ensure_todo_owner(todo, current_user)
+    if todo.version != todo_data.version:
+        raise HTTPException(status_code=409, detail="Version conflict")
     # поля, которые не были явно заданы при создании экземпляра модели, будут исключены из возвращаемого словаря
     update_data = todo_data.model_dump(exclude_unset=True)
 
@@ -96,8 +101,9 @@ async def patch_todo_by_id(
     return todo
 
 
-async def delete_todo(session: AsyncSession, todo_id:int, current_user: User) -> None:
+async def delete_todo(session: AsyncSession, todo_id:int, current_user) -> None:
     todo = await get_todo_by_id(session, todo_id)
+    ensure_todo_owner(todo, current_user)
 
     await session.delete(todo)
     await session.commit()
