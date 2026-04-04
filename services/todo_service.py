@@ -1,24 +1,21 @@
 from db.models.todo import Todo
 from fastapi import HTTPException, Depends
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import select, insert
+from sqlalchemy import select, insert, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.todo import TodoCreate
+from schemas.todo import TodoCreate, TodoUpdate, TodoPatch
 from db.models.user import User
 
 
-async def get_todo_by_id(session: AsyncSession, todo_id:int, current_user: User) -> Todo|None:
+async def get_todo_by_id(session: AsyncSession, todo_id: int) -> Todo | None:
     query = select(Todo).where(Todo.id == todo_id)
     result = await session.execute(query)
-    todo = result.scalar_one_or_none()
+    return result.scalar_one_or_none()
 
-    if todo is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
 
+def ensure_todo_owner(todo: Todo, current_user: User) -> None:
     if todo.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
-
-    return todo
 
 
 async def get_todos_user(session: AsyncSession, user_id:int) -> list[Todo]:
@@ -37,13 +34,73 @@ async def create_todo(session: AsyncSession, owner_id:int, todo_data: TodoCreate
     return todo
 
 
-async def update_todo_by_id(session: AsyncSession, todo_data) -> Todo:
-    pass
+async def update_todo_by_id(
+        session: AsyncSession,
+        todo_id: int,
+        current_user: User,
+        todo_data: TodoUpdate,
+) -> Todo:
+    todo = await get_todo_by_id(session, todo_id)
+
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    ensure_todo_owner(todo, current_user)
+
+    todo.title = todo_data.title
+    todo.description = todo_data.description
+    todo.completed = todo_data.completed
+    todo.updated_at = datetime.now(timezone.utc)
+
+    if todo.completed:
+        todo.completed_at = datetime.now(timezone.utc)
+    else:
+        todo.completed_at = None
+
+    todo.version += 1
+
+    await session.commit()
+    await session.refresh(todo)
+    return todo
 
 
-async def patch_todo_by_id(session: AsyncSession, todo_data) -> Todo:
-    pass
+async def patch_todo_by_id(
+        session: AsyncSession,
+        todo_id: int,
+        current_user: User,
+        todo_data: TodoPatch
+) -> Todo:
+    todo = await get_todo_by_id(session, todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    ensure_todo_owner(todo, current_user)
+    # поля, которые не были явно заданы при создании экземпляра модели, будут исключены из возвращаемого словаря
+    update_data = todo_data.model_dump(exclude_unset=True)
+
+    for field, value in update_data.items():
+        setattr(todo, field, value)
+
+    todo.updated_at = datetime.now(timezone.utc)
+
+    if "completed" in update_data:
+        if todo.completed:
+            todo.completed_at = datetime.now(timezone.utc)
+        else:
+            todo.completed_at = None
+
+    todo.version += 1
+
+    await session.commit()
+    await session.refresh(todo)
+
+    return todo
 
 
-async def delete_todo(session: AsyncSession, todo_id:int):
-    pass
+async def delete_todo(session: AsyncSession, todo_id:int, current_user: User) -> None:
+    todo = await get_todo_by_id(session, todo_id)
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+
+    await session.delete(todo)
+    await session.commit()
