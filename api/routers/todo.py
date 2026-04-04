@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from api.deps import get_current_user
 from db.models import User
 from schemas.todo import TodoCreate, TodoRead, TodoUpdate
-from services.todo_service import create_todo, get_todo_by_id, get_todos_user
+from services.todo_service import create_todo, get_todo_by_id, get_todos_user, ensure_todo_owner
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.session import get_db
 
@@ -25,7 +25,9 @@ async def get_todo_by_id_endpoint(
         db: AsyncSession = Depends(get_db),
         current_user: User = Depends(get_current_user)
 ):
-    return await get_todo_by_id(session=db, todo_id=todo_id, current_user=current_user)
+    todo = await get_todo_by_id(db, todo_id)
+    ensure_todo_owner(todo, current_user)
+    return todo
 
 
 @todo_router.get('/todos', response_model=list[TodoRead])

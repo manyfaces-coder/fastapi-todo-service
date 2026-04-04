@@ -10,7 +10,10 @@ from db.models.user import User
 async def get_todo_by_id(session: AsyncSession, todo_id: int) -> Todo | None:
     query = select(Todo).where(Todo.id == todo_id)
     result = await session.execute(query)
-    return result.scalar_one_or_none()
+    todo = result.scalar_one_or_none()
+    if todo is None:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    return todo
 
 
 def ensure_todo_owner(todo: Todo, current_user: User) -> None:
@@ -42,9 +45,6 @@ async def update_todo_by_id(
 ) -> Todo:
     todo = await get_todo_by_id(session, todo_id)
 
-    if todo is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
-
     ensure_todo_owner(todo, current_user)
 
     todo.title = todo_data.title
@@ -71,8 +71,6 @@ async def patch_todo_by_id(
         todo_data: TodoPatch
 ) -> Todo:
     todo = await get_todo_by_id(session, todo_id)
-    if todo is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
 
     ensure_todo_owner(todo, current_user)
     # поля, которые не были явно заданы при создании экземпляра модели, будут исключены из возвращаемого словаря
@@ -99,8 +97,6 @@ async def patch_todo_by_id(
 
 async def delete_todo(session: AsyncSession, todo_id:int, current_user: User) -> None:
     todo = await get_todo_by_id(session, todo_id)
-    if todo is None:
-        raise HTTPException(status_code=404, detail="Todo not found")
 
     await session.delete(todo)
     await session.commit()
