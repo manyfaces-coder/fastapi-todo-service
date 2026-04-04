@@ -50,10 +50,11 @@ async def update_todo_by_id(
     todo.title = todo_data.title
     todo.description = todo_data.description
     todo.completed = todo_data.completed
-    todo.updated_at = datetime.now(timezone.utc)
+    todo.updated_at = datetime.utcnow()
 
     if todo.completed:
-        todo.completed_at = datetime.now(timezone.utc)
+        todo.completed_at = datetime.utcnow()
+
     else:
         todo.completed_at = None
 
@@ -79,11 +80,11 @@ async def patch_todo_by_id(
     for field, value in update_data.items():
         setattr(todo, field, value)
 
-    todo.updated_at = datetime.now(timezone.utc)
+    todo.updated_at = datetime.utcnow()
 
     if "completed" in update_data:
         if todo.completed:
-            todo.completed_at = datetime.now(timezone.utc)
+            todo.completed_at = datetime.utcnow()
         else:
             todo.completed_at = None
 
