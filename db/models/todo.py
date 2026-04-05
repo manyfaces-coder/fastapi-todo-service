@@ -1,3 +1,4 @@
+from db.models.attachment import Attachment
 from ..base import Base
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
@@ -19,3 +20,4 @@ class Todo(Base):
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     owner: Mapped["User"] = relationship(back_populates="todos")
+    attachments: Mapped[list["Attachment"]] = relationship(back_populates="todo")
