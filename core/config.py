@@ -15,3 +15,13 @@ if not DATABASE_URL:
 ALEMBIC_DATABASE_URL = os.getenv("ALEMBIC_DATABASE_URL")
 if not ALEMBIC_DATABASE_URL:
     raise RuntimeError("ALEMBIC_DATABASE_URL is not set")
+
+
+MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10 MB
+
+ALLOWED_MIME_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "application/pdf",
+    "text/plain",
+}
