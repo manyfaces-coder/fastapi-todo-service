@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+TESTING = os.getenv("TESTING", "false").lower() == "true"
+
 JWT_KEY = os.getenv("JWT_KEY")
 if not JWT_KEY:
     raise RuntimeError("JWT_KEY is not set")
