@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from api.deps import get_current_user
 from db.models import User
 from schemas.attachment import AttachmentUploadRequest, AttachmentUploadResponse
-from services.attachment_service import request_attachment_upload
+from services.attachment_service import request_attachment_upload, delete_attachment
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.session import get_db
 
@@ -24,3 +24,17 @@ async def request_attachment_upload_endpoint(
         current_user=current_user,
         attachment_data=attachment_data,
     )
+
+
+@attachment_router.delete("/attachments/{attachment_id}")
+async def delete_attachment_endpoint(
+        attachment_id: int,
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db),
+):
+    await delete_attachment(
+        session=db,
+        attachment_id=attachment_id,
+        current_user=current_user,
+    )
+    return {"message": "Attachment deleted"}

@@ -6,6 +6,7 @@ from db.models.attachment import Attachment
 from db.models.user import User
 from .todo_service import get_todo_by_id, ensure_todo_owner
 from core.config import MAX_ATTACHMENT_SIZE, ALLOWED_MIME_TYPES
+from sqlalchemy import select
 
 
 async def request_attachment_upload(
@@ -43,3 +44,32 @@ async def request_attachment_upload(
         upload_url=upload_url,
         storage_key=storage_key,
     )
+
+
+async def get_attachment_by_id(
+        session: AsyncSession,
+        attachment_id: int
+) -> Attachment | None:
+    query = select(Attachment).where(Attachment.id == attachment_id)
+    result = await session.execute(query)
+    attachment = result.scalar_one_or_none()
+
+    if attachment is None:
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return attachment
+
+
+async def delete_attachment(
+        session: AsyncSession,
+        attachment_id: int,
+        current_user: User,
+):
+    attachment = await get_attachment_by_id(session, attachment_id)
+
+    todo = await get_todo_by_id(session, attachment.todo_id)
+
+    ensure_todo_owner(todo, current_user)
+
+    await session.delete(attachment)
+    await session.commit()
