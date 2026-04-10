@@ -14,6 +14,7 @@ jobs:
       TESTING: "true"
       JWT_KEY: test-secret-key
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
+      ALEMBIC_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
     services:
       postgres:
